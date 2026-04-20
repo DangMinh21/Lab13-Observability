@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -93,11 +94,14 @@ def get_audit_logger() -> logging.Logger:
 
     class _JsonFormatter(logging.Formatter):
         def format(self, record: logging.LogRecord) -> str:
-            data = {
+            data: dict[str, Any] = {
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "level": record.levelname.lower(),
-                **record.msg,
             }
+            if isinstance(record.msg, Mapping):
+                data.update({str(k): v for k, v in record.msg.items()})
+            else:
+                data["message"] = record.getMessage()
             return json.dumps(data, ensure_ascii=False)
 
     handler.setFormatter(_JsonFormatter())

@@ -5,8 +5,8 @@
 | # | Họ tên | MSSV | Role trong lab |
 |---|---|---|---|
 | 1 | Nguyễn Quang Tùng | 2A202600197 |  |
-| 2 | Đặng Văn Minh | 2A202600027 |  |
-| 3 | Nguyễn Thị Quỳnh Trang | 2A202600406 |  |
+| 2 | Nguyễn Thị Quỳnh Trang | 2A202600406 |  |
+| 3 | Đặng Văn Minh | 2A202600027 |  |
 | 4 | Đồng Văn Thịnh | 2A202600365 |  |
 
 ---

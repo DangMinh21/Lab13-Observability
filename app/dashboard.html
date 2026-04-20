@@ -301,8 +301,6 @@
                     </div>
                 </div>
             </div>
-            <div class="card-value"><span id="val-p95">--</span><span style="font-size: 1rem; color: var(--text-secondary);">ms</span></div>
-            <div class="card-subtext">SLO: < 2000ms | P50: <span id="val-p50">--</span>ms</div>
             <div class="chart-container">
                 <canvas id="chart-latency"></canvas>
             </div>
@@ -317,7 +315,7 @@
                 </div>
                 <div class="card-value-display">
                     <span class="card-value" id="val-delta-traffic">0</span>
-                    <span class="card-unit">req / 5s</span>
+                    <span class="card-unit">req / 1s</span>
                 </div>
                 <div class="card-stats">
                     <div class="stat-item">
@@ -396,77 +394,59 @@
     </div>
 
     <script>
-        const ctxLatency = document.getElementById('chart-latency').getContext('2d');
-        const ctxTraffic = document.getElementById('chart-traffic').getContext('2d');
-
-        let prevTraffic = null;
-        let prevP95 = null;
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+            }
+        };
 
         const latencyData = {
             labels: [],
             datasets: [{
-                label: 'P95 Latency',
+                label: 'P95 Latency (ms)',
                 data: [],
                 borderColor: '#38bdf8',
-                backgroundColor: '#38bdf8',
-                tension: 0.1,
-                fill: false,
+                backgroundColor: 'rgba(56, 189, 248, 0.05)',
                 borderWidth: 2,
+                tension: 0.4,
                 pointRadius: 3,
-                pointHoverRadius: 5
+                pointBackgroundColor: '#38bdf8',
+                fill: true
             }]
         };
 
         const trafficData = {
             labels: [],
             datasets: [{
-                label: 'Req/s',
+                label: 'Req / interval',
                 data: [],
                 borderColor: '#4ade80',
-                backgroundColor: 'rgba(74, 222, 128, 0.3)',
-                tension: 0.1,
-                fill: true,
+                backgroundColor: 'rgba(74, 222, 128, 0.05)',
                 borderWidth: 2,
+                tension: 0.2,
                 pointRadius: 3,
-                pointHoverRadius: 5
+                pointBackgroundColor: '#4ade80',
+                fill: true
             }]
         };
 
-        const chartLatency = new Chart(ctxLatency, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    data: [],
-                    borderColor: '#38bdf8',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#38bdf8',
-                    fill: { target: 'origin', above: 'rgba(56, 189, 248, 0.05)' }
-                }]
-            },
-            options: chartConfig
-        });
+        const chartLatency = new Chart(
+            document.getElementById('chart-latency').getContext('2d'),
+            { type: 'line', data: latencyData, options: chartConfig }
+        );
 
-        const chartTraffic = new Chart(ctxTraffic, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    data: [],
-                    borderColor: '#4ade80',
-                    borderWidth: 2,
-                    tension: 0.2,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#4ade80',
-                    fill: { target: 'origin', above: 'rgba(74, 222, 128, 0.05)' }
-                }]
-            },
-            options: chartConfig
-        });
+        const chartTraffic = new Chart(
+            document.getElementById('chart-traffic').getContext('2d'),
+            { type: 'line', data: trafficData, options: chartConfig }
+        );
 
-        let lastTraffic = 0;
+        let prevTraffic = 0;
+        const MAX_POINTS = 60;
 
         async function updateDashboard() {
             try {
@@ -474,14 +454,14 @@
                 const data = await response.json();
                 const now = new Date().toLocaleTimeString();
 
-                const delta = data.traffic - lastTraffic;
-                lastTraffic = data.traffic;
+                const deltaTraffic = Math.max(0, data.traffic - prevTraffic);
+                prevTraffic = data.traffic;
 
                 // Values
                 document.getElementById('val-p95').innerText = data.latency_p95.toFixed(0);
                 document.getElementById('val-p50').innerText = data.latency_p50.toFixed(0);
                 document.getElementById('val-total-traffic').innerText = data.traffic;
-                document.getElementById('val-delta-traffic').innerText = delta;
+                document.getElementById('val-delta-traffic').innerText = deltaTraffic;
                 document.getElementById('val-cost').innerText = data.total_cost_usd.toFixed(4);
                 document.getElementById('val-avg-cost').innerText = data.avg_cost_usd.toFixed(4);
                 document.getElementById('val-tokens-in').innerText = data.tokens_in_total || 0;
@@ -489,76 +469,39 @@
                 document.getElementById('val-quality').innerText = data.quality_avg.toFixed(2);
                 document.getElementById('last-updated').innerText = now;
 
-                const errors = Object.values(data.error_breakdown || {}).reduce((a,b) => a+b, 0);
+                const errors = Object.values(data.error_breakdown || {}).reduce((a, b) => a + b, 0);
                 const errRate = data.traffic > 0 ? (errors / data.traffic * 100) : 0;
                 document.getElementById('val-error-rate').innerText = errRate.toFixed(2);
-                document.getElementById('val-error-count').innerText = errCount;
 
-                // Thresholds & Status
-                const latencyCard = document.getElementById('card-latency');
-                const latencyStatus = document.getElementById('latency-status');
-                if (data.latency_p95 >= 2000) {
-                    latencyCard.classList.add('breach');
-                    latencyStatus.innerText = 'BREACH';
-                    latencyStatus.style.backgroundColor = 'var(--accent-red)';
-                } else {
-                    latencyCard.classList.remove('breach');
-                    latencyStatus.innerText = 'OK';
-                    latencyStatus.style.backgroundColor = 'rgba(74, 222, 128, 0.2)';
-                }
-
-                const errorStatus = document.getElementById('error-status');
-                if (errRate >= 2) {
-                    errorStatus.innerText = 'BREACH';
-                    errorStatus.style.backgroundColor = 'var(--accent-red)';
-                } else {
-                    errorStatus.innerText = 'OK';
-                    errorStatus.style.backgroundColor = 'rgba(74, 222, 128, 0.2)';
-                }
-
-                const qualityStatus = document.getElementById('quality-status');
-                if (data.traffic > 0) {
-                    qualityStatus.innerText = data.quality_avg >= 0.75 ? 'GOOD' : 'LOW';
-                    qualityStatus.style.backgroundColor = data.quality_avg >= 0.75 ? 'rgba(74, 222, 128, 0.2)' : 'rgba(251, 146, 60, 0.2)';
-                }
-
-                // Update Charts (rolling 60 points = 60 seconds)
-                const MAX_POINTS = 60;
+                // Charts — rolling window
                 if (latencyData.labels.length >= MAX_POINTS) {
                     latencyData.labels.shift();
                     latencyData.datasets[0].data.shift();
                     trafficData.labels.shift();
                     trafficData.datasets[0].data.shift();
                 }
-
-                // Chỉ push điểm khi có request mới
-                const deltaTraffic = prevTraffic !== null ? Math.max(0, data.traffic - prevTraffic) : 0;
-                const hasNewData = prevTraffic === null || deltaTraffic > 0;
-                prevTraffic = data.traffic;
-                prevP95 = data.latency_p95;
-
-                if (hasNewData) {
-                    latencyData.labels.push(now);
-                    latencyData.datasets[0].data.push(data.latency_p95);
-                    trafficData.labels.push(now);
-                    trafficData.datasets[0].data.push(deltaTraffic);
-                }
+                latencyData.labels.push(now);
+                latencyData.datasets[0].data.push(data.latency_p95);
+                trafficData.labels.push(now);
+                trafficData.datasets[0].data.push(deltaTraffic);
 
                 chartLatency.update('none');
                 chartTraffic.update('none');
 
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error('Dashboard update error:', err); }
         }
 
         async function resetMetrics() {
             if (confirm("Reset Metrics?")) {
                 await fetch('/metrics/reset', { method: 'POST' });
-                lastTraffic = 0;
+                prevTraffic = 0;
+                latencyData.labels = []; latencyData.datasets[0].data = [];
+                trafficData.labels = []; trafficData.datasets[0].data = [];
                 updateDashboard();
             }
         }
 
-        setInterval(updateDashboard, 1000); 
+        setInterval(updateDashboard, 1000);
         updateDashboard();
     </script>
 </body>

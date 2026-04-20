@@ -3,19 +3,20 @@
 > **Instruction**: Fill in all sections below. This report is designed to be parsed by an automated grading assistant. Ensure all tags (e.g., `[GROUP_NAME]`) are preserved.
 
 ## 1. Team Metadata
-- [GROUP_NAME]: 
-- [REPO_URL]: 
+- [GROUP_NAME]: Nhóm 9 — Day 13 Observability
+
+- [REPO_URL]: [Link GitHub](https://github.com/DangMinh21/Lab13-Observability)
+
 - [MEMBERS]:
-  - Member A: [Name] | Role: Logging & PII
-  - Member B: [Name] | Role: Tracing & Enrichment
-  - Member C: [Name] | Role: SLO & Alerts
-  - Member D: [Name] | Role: Load Test & Dashboard
-  - Member E: [Name] | Role: Demo & Report
+  - Member A: Nguyễn Quang Tùng | Role: Correlation ID & Incident Debug
+  - Member B: Nguyễn Thị Quỳnh Trang | Role: Logging & PII Scrubbing
+  - Member C: Đặng Văn Minh | Role: Tracing (Langfuse) + SLO + Alerts
+  - Member D: Đồng Văn Thịnh | Role: Dashboard + Docs + Report
 
 ---
 
 ## 2. Group Performance (Auto-Verified)
-- [VALIDATE_LOGS_FINAL_SCORE]: /100
+- [VALIDATE_LOGS_FINAL_SCORE]: x/100
 - [TOTAL_TRACES_COUNT]: 
 - [PII_LEAKS_FOUND]: 
 

@@ -447,6 +447,7 @@
 
         let prevTraffic = 0;
         const MAX_POINTS = 60;
+        const sessionStart = Date.now();
 
         async function updateDashboard() {
             try {
@@ -456,6 +457,10 @@
 
                 const deltaTraffic = Math.max(0, data.traffic - prevTraffic);
                 prevTraffic = data.traffic;
+
+                const elapsedSec = (Date.now() - sessionStart) / 1000;
+                const avgRateVal = data.traffic > 0 ? (data.traffic / elapsedSec).toFixed(2) : null;
+                document.getElementById('val-avg-rate').innerText = avgRateVal ? avgRateVal + ' req/s' : '--';
 
                 // Values
                 document.getElementById('val-p95').innerText = data.latency_p95.toFixed(0);

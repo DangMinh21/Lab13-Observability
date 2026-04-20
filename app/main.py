@@ -2,24 +2,33 @@ from __future__ import annotations
 
 import os
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
+
+load_dotenv()
 from fastapi.responses import JSONResponse
 from structlog.contextvars import bind_contextvars
 
 from .agent import LabAgent
 from .incidents import disable, enable, status
-from .logging_config import configure_logging, get_logger
+from .logging_config import configure_logging, get_audit_logger, get_logger
 from .metrics import record_error, snapshot
 from .middleware import CorrelationIdMiddleware
 from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
-from .tracing import tracing_enabled
+from .tracing import flush_traces, tracing_enabled
 
 configure_logging()
 log = get_logger()
+audit = get_audit_logger()
 app = FastAPI(title="Day 13 Observability Lab")
 app.add_middleware(CorrelationIdMiddleware)
 agent = LabAgent()
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    flush_traces()
 
 
 @app.on_event("startup")
@@ -74,6 +83,17 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
             cost_usd=result.cost_usd,
             payload={"answer_preview": summarize_text(result.answer)},
         )
+        audit.info({
+            "event": "chat_request",
+            "user_id_hash": hash_user_id(body.user_id),
+            "session_id": body.session_id,
+            "feature": body.feature,
+            "correlation_id": request.state.correlation_id,
+            "outcome": "success",
+            "latency_ms": result.latency_ms,
+            "cost_usd": result.cost_usd,
+            "quality_score": result.quality_score,
+        })
         return ChatResponse(
             answer=result.answer,
             correlation_id=request.state.correlation_id,
@@ -100,6 +120,7 @@ async def enable_incident(name: str) -> JSONResponse:
     try:
         enable(name)
         log.warning("incident_enabled", service="control", payload={"name": name})
+        audit.warning({"event": "incident_enabled", "incident": name})
         return JSONResponse({"ok": True, "incidents": status()})
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -110,6 +131,7 @@ async def disable_incident(name: str) -> JSONResponse:
     try:
         disable(name)
         log.warning("incident_disabled", service="control", payload={"name": name})
+        audit.warning({"event": "incident_disabled", "incident": name})
         return JSONResponse({"ok": True, "incidents": status()})
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

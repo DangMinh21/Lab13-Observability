@@ -11,7 +11,7 @@ PII_PATTERNS: dict[str, str] = {
     "credit_card": r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b",
     "passport_vn": r"\b[A-Z]\d{7,8}\b",
     "address_vn": r"(?i)(số\s+\d+|đường\s+\w+|phường\s+\w+|quận\s+\w+|tỉnh\s+\w+)",
-    "bank_account_vn": r"\b\d{9,14}\b",
+    "bank_account_vn": r"(?i)(?:stk|tài khoản|account)[^\d]*(\d{9,14})\b",
 }
 
 # 2. TỐI ƯU HÓA: Biên dịch sẵn các regex object để tăng tốc độ xử lý log

@@ -2,15 +2,14 @@ service: day13-observability-lab
 window: 28d
 slis:
   latency_p95_ms:
-    objective: 3000
-    target: 99.5
-    note: Replace with your group's target
+    objective: 2000          # 95% of requests complete within 2s
+    target: 99.0             # 99% of measurement windows must meet objective
   error_rate_pct:
-    objective: 2
-    target: 99.0
+    objective: 1             # fewer than 1% of requests fail
+    target: 99.5
   daily_cost_usd:
-    objective: 2.5
+    objective: 2.0           # daily LLM spend stays under $2
     target: 100.0
   quality_score_avg:
-    objective: 0.75
+    objective: 0.70          # average heuristic quality score >= 0.70
     target: 95.0

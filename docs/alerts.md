@@ -38,3 +38,18 @@
   - shorten prompts
   - route easy requests to cheaper model
   - apply prompt cache
+
+## 4. Quality score degradation
+- Severity: P2
+- Trigger: `quality_score_avg < 0.60 for 10m`
+- Impact: users receive low-quality answers; trust and engagement drop
+- First checks:
+  1. Open Langfuse traces filtered by low `quality_score` — look for patterns (specific feature, model, or query type)
+  2. Check `doc_count` in trace metadata — if 0, RAG is returning no results
+  3. Check if `rag_slow` or `tool_fail` incident toggle is enabled
+  4. Inspect `answer_preview` in recent logs for `[REDACTED` tokens (over-aggressive PII scrubbing in answers)
+- Mitigation:
+  - If RAG is empty: verify retrieval index, fall back to keyword search
+  - If specific feature: disable that feature route temporarily
+  - If model-related: switch to backup model
+  - If PII over-scrubbing: tighten regex patterns in `app/pii.py`
